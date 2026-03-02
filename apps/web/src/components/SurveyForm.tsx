@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { calculateGI2, arrayToCSV, downloadCSV } from 'core';
 import type { IntegrityScore } from 'core';
 import Link from 'next/link';
+import { useEffect } from 'react';
 
 export function SurveyForm() {
   const [truth, setTruth] = useState(3);
@@ -12,6 +13,27 @@ export function SurveyForm() {
   const [powerRisk, setPowerRisk] = useState(3);
   const [result, setResult] = useState<number | null>(null);
   const [history, setHistory] = useState<{ score: number; timestamp: string }[]>([]);
+
+  // load from localStorage on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('surveyHistory');
+      if (raw) {
+        setHistory(JSON.parse(raw));
+      }
+    } catch {
+      // ignore parse errors
+    }
+  }, []);
+
+  // save whenever history changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('surveyHistory', JSON.stringify(history));
+    } catch {
+      // ignore
+    }
+  }, [history]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,15 +117,23 @@ export function SurveyForm() {
               </li>
             ))}
           </ul>
-          <button
-            onClick={() => {
-              const csv = arrayToCSV(history, ['timestamp', 'score']);
-              downloadCSV(csv, 'survey-history.csv');
-            }}
-            className="mt-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-          >
-            Export CSV
-          </button>
+          <div className="mt-4 flex gap-2">
+            <button
+              onClick={() => {
+                const csv = arrayToCSV(history, ['timestamp', 'score']);
+                downloadCSV(csv, 'survey-history.csv');
+              }}
+              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+            >
+              Export CSV
+            </button>
+            <button
+              onClick={() => setHistory([])}
+              className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+            >
+              Clear History
+            </button>
+          </div>
         </div>
       )}
 
