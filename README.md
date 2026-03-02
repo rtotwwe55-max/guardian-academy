@@ -13,7 +13,7 @@ This repository contains the full infrastructure for:
 
 /apps
   /web       → Next.js PWA (primary interface)
-  /mobile    → React Native / Expo client
+  /mobile    → React Native / Expo client (field data collection)
 /packages
   /core      → Shared integrity logic, metrics, types
 /docs
