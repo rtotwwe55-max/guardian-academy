@@ -26,9 +26,19 @@ export function Dashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
       {/* Header */}
-      <div className="mb-10">
-        <h1 className="text-4xl font-bold text-gray-900">Guardian Academy</h1>
-        <p className="text-gray-600 mt-2">Integrity Metrics Dashboard</p>
+      <div className="mb-10 flex items-center justify-between">
+        <div>
+          <h1 className="text-4xl font-bold text-gray-900">Guardian Academy</h1>
+          <p className="text-gray-600 mt-2">Integrity Metrics Dashboard</p>
+        </div>
+        <div>
+          <a
+            href="/survey"
+            className="text-blue-600 font-medium hover:underline"
+          >
+            + Take Survey
+          </a>
+        </div>
       </div>
 
       {/* Top Metrics */}
