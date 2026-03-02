@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { calculateGI2 } from 'core';
+import { calculateGI2, arrayToCSV, downloadCSV } from 'core';
 import type { IntegrityScore } from 'core';
 import Link from 'next/link';
 
@@ -11,7 +11,7 @@ export function SurveyForm() {
   const [restraint, setRestraint] = useState(3);
   const [powerRisk, setPowerRisk] = useState(3);
   const [result, setResult] = useState<number | null>(null);
-  const [history, setHistory] = useState<number[]>([]);
+  const [history, setHistory] = useState<{ score: number; timestamp: string }[]>([]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,7 +19,8 @@ export function SurveyForm() {
       { truth, responsibility, restraint, powerRisk },
     ]);
     setResult(score);
-    setHistory((prev) => [...prev, score]);
+    const now = new Date().toISOString();
+    setHistory((prev) => [...prev, { score, timestamp: now }]);
   };
 
   return (
@@ -88,10 +89,21 @@ export function SurveyForm() {
         <div className="mt-6">
           <h2 className="font-semibold">History</h2>
           <ul className="list-decimal list-inside">
-            {history.map((s, i) => (
-              <li key={i}>{s}</li>
+            {history.map((entry, i) => (
+              <li key={i}>
+                {entry.timestamp}: {entry.score}
+              </li>
             ))}
           </ul>
+          <button
+            onClick={() => {
+              const csv = arrayToCSV(history, ['timestamp', 'score']);
+              downloadCSV(csv, 'survey-history.csv');
+            }}
+            className="mt-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+          >
+            Export CSV
+          </button>
         </div>
       )}
 
