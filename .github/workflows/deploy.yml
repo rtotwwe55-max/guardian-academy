@@ -1,0 +1,57 @@
+name: Deploy Guardian Academy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      # install dependencies for all workspaces
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      # build web (Next.js PWA)
+      - name: Build Web Frontend
+        working-directory: apps/web
+        run: |
+          npm ci
+          npm run build
+
+      # optional: publish web build to a static host or containerize
+      # (this example just archives the build output)
+      - name: Archive Web Build
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: web-build
+          path: apps/web/.next
+
+      # mobile: dependencies only (Expo build happens in separate workflow or manually)
+      - name: Install Mobile Dependencies
+        working-directory: apps/mobile
+        run: npm ci
+
+      # Example: push a Docker image for an API service if one existed
+      # - name: Build API Docker Image
+      #   run: docker build -t guardian-academy-api ./backend
+
+      # - name: Push to Docker Registry
+      #   run: |
+      #     echo ${{ secrets.DOCKER_HUB_PASSWORD }} | docker login -u ${{ secrets.DOCKER_HUB_USERNAME }} --password-stdin
+      #     docker push your-dockerhub-user/guardian-academy-api:latest
+
+      # Optional: deploy to Netlify or other hosts
+      - uses: nwtgck/actions-netlify@v1.2
+        with:
+          publish-dir: apps/web/out
+          production-deploy: true
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}

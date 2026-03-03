@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { calculateGI2, arrayToCSV, downloadCSV } from 'core';
+import { calculateGI2 } from 'core';
 
 export default function SurveyForm() {
   const [truth, setTruth] = useState('3');

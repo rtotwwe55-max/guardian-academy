@@ -1,10 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { calculateGI2, arrayToCSV, downloadCSV } from 'core';
 import type { IntegrityScore } from 'core';
 import Link from 'next/link';
-import { useEffect } from 'react';
 
 export function SurveyForm() {
   const [truth, setTruth] = useState(3);
@@ -13,54 +12,106 @@ export function SurveyForm() {
   const [powerRisk, setPowerRisk] = useState(3);
   const [result, setResult] = useState<number | null>(null);
   const [history, setHistory] = useState<{ score: number; timestamp: string }[]>([]);
-  const [session, setSession] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [username, setUsername] = useState<string | null>(null);
-  const [loginName, setLoginName] = useState('');
+  const [isSignup, setIsSignup] = useState(false);
+  const [authUsername, setAuthUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
-  // load session from localStorage on mount
+  // load token from localStorage on mount
   useEffect(() => {
-    const s = localStorage.getItem('session');
-    const u = localStorage.getItem('username');
-    if (s && u) {
-      setSession(s);
-      setUsername(u);
-      fetchHistory(s);
+    const savedToken = localStorage.getItem('token');
+    const savedUsername = localStorage.getItem('username');
+    if (savedToken && savedUsername) {
+      setToken(savedToken);
+      setUsername(savedUsername);
+      fetchHistory(savedToken);
     }
   }, []);
 
-  const fetchHistory = async (s: string) => {
+  const fetchHistory = async (authToken: string) => {
     try {
-      const res = await fetch(`/api/history?session=${s}`);
+      const res = await fetch('/api/history', {
+        headers: { 'Authorization': `Bearer ${authToken}` },
+      });
       if (res.ok) {
         const data = await res.json();
-        setHistory(data.history);
+        setHistory(data.history || []);
+      } else if (res.status === 401) {
+        setError('Token expired. Please log in again.');
+        logout();
       }
-    } catch {}
+    } catch (err) {
+      setError('Failed to fetch history');
+    }
   };
 
-  const performLogin = async () => {
-    if (!loginName) return;
-    const res = await fetch('/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: loginName }),
-    });
-    if (res.ok) {
+  const handleLogin = async () => {
+    setError('');
+    if (!authUsername || !password) {
+      setError('Please enter username and password');
+      return;
+    }
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: authUsername, password }),
+      });
       const data = await res.json();
-      localStorage.setItem('session', data.session);
-      localStorage.setItem('username', loginName);
-      setSession(data.session);
-      setUsername(loginName);
-      fetchHistory(data.session);
+      if (res.ok) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('username', data.username);
+        setToken(data.token);
+        setUsername(data.username);
+        setAuthUsername('');
+        setPassword('');
+        setIsSignup(false);
+        fetchHistory(data.token);
+      } else {
+        setError(data.error || 'Login failed');
+      }
+    } catch (err) {
+      setError('Login request failed');
+    }
+  };
+
+  const handleSignup = async () => {
+    setError('');
+    if (!authUsername || !password) {
+      setError('Please enter username and password');
+      return;
+    }
+    try {
+      const res = await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: authUsername, password }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setError('');
+        setIsSignup(false);
+        setError('Account created! Please log in.');
+        // optionally auto-login after signup
+        setTimeout(() => handleLogin(), 1000);
+      } else {
+        setError(data.error || 'Signup failed');
+      }
+    } catch (err) {
+      setError('Signup request failed');
     }
   };
 
   const logout = () => {
-    localStorage.removeItem('session');
+    localStorage.removeItem('token');
     localStorage.removeItem('username');
-    setSession(null);
+    setToken(null);
     setUsername(null);
     setHistory([]);
+    setAuthUsername('');
+    setPassword('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -71,18 +122,31 @@ export function SurveyForm() {
     setResult(score);
     const now = new Date().toISOString();
 
-    if (session) {
-      // save to backend
-      const res = await fetch('/api/history', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session, entry: { score, timestamp: now } }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setHistory(data.history);
+    if (token) {
+      // save to backend with auth token
+      try {
+        const res = await fetch('/api/history', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({ entry: { score, timestamp: now } }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setHistory(data.history || []);
+        } else if (res.status === 401) {
+          setError('Token expired. Please log in again.');
+          logout();
+        } else {
+          setError('Failed to save entry');
+        }
+      } catch (err) {
+        setError('Failed to submit entry');
       }
     } else {
+      // save locally only
       setHistory((prev) => [...prev, { score, timestamp: now }]);
     }
   };
@@ -148,26 +212,58 @@ export function SurveyForm() {
           <strong>Result:</strong> GI² score = {result}
         </div>
       )}
-      {!session && (
+      
+      {error && (
+        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded text-red-700">
+          {error}
+        </div>
+      )}
+
+      {!token && (
         <div className="mt-6 p-4 bg-blue-50 rounded">
-          <h2 className="font-semibold mb-2">Login to sync history</h2>
-          <div className="flex gap-2">
+          <h2 className="font-semibold mb-3">
+            {isSignup ? 'Create Account' : 'Login to sync history'}
+          </h2>
+          <div className="space-y-2">
             <input
-              value={loginName}
-              onChange={(e) => setLoginName(e.target.value)}
+              type="text"
+              value={authUsername}
+              onChange={(e) => setAuthUsername(e.target.value)}
               placeholder="username"
-              className="border rounded px-3 py-2 flex-1"
+              className="block w-full border rounded px-3 py-2"
             />
-            <button
-              onClick={performLogin}
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-            >
-              Login
-            </button>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="password"
+              className="block w-full border rounded px-3 py-2"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={isSignup ? handleSignup : handleLogin}
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              >
+                {isSignup ? 'Sign Up' : 'Login'}
+              </button>
+              <button
+                onClick={() => {
+                  setIsSignup(!isSignup);
+                  setError('');
+                }}
+                className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500"
+              >
+                {isSignup ? 'Back to Login' : 'Create Account'}
+              </button>
+            </div>
+            <p className="text-xs text-gray-600 mt-2">
+              Demo: username=<code>demo</code>, password=<code>demo123</code>
+            </p>
           </div>
         </div>
       )}
-      {session && username && (
+
+      {token && username && (
         <div className="mt-6 text-sm text-gray-600 flex items-center gap-4">
           Logged in as <strong>{username}</strong>
           <button
@@ -191,16 +287,59 @@ export function SurveyForm() {
           </ul>
           <div className="mt-4 flex gap-2">
             <button
-              onClick={() => {
-                const csv = arrayToCSV(history, ['timestamp', 'score']);
-                downloadCSV(csv, 'survey-history.csv');
+              onClick={async () => {
+                if (!token) {
+                  setError('Must be logged in to export');
+                  return;
+                }
+                try {
+                  const res = await fetch('/api/export', {
+                    headers: { 'Authorization': `Bearer ${token}` },
+                  });
+                  if (res.ok) {
+                    const blob = await res.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'survey-history.csv';
+                    a.click();
+                  } else if (res.status === 401) {
+                    setError('Token expired. Please log in again.');
+                    logout();
+                  } else {
+                    setError('Export failed');
+                  }
+                } catch (err) {
+                  setError('Export request failed');
+                }
               }}
               className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
             >
               Export CSV
             </button>
             <button
-              onClick={() => setHistory([])}
+              onClick={async () => {
+                if (!token) {
+                  setHistory([]);
+                  return;
+                }
+                try {
+                  const res = await fetch('/api/history', {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                  });
+                  if (res.ok) {
+                    setHistory([]);
+                  } else if (res.status === 401) {
+                    setError('Token expired. Please log in again.');
+                    logout();
+                  } else {
+                    setError('Failed to clear history');
+                  }
+                } catch (err) {
+                  setError('Clear request failed');
+                }
+              }}
               className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
             >
               Clear History
