@@ -9,7 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.3".
     "core": "*",
     "firebase-admin": "^13.7.0",
     "jsonwebtoken": "^9.0.3",
