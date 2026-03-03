@@ -9,5 +9,9 @@
   "scripts": {
     "dev:web": "cd apps/web && npm run dev",
     "dev:mobile": "cd apps/mobile && npm start"
+  },
+  "devDependencies": {
+    "tailwindcss": "^4",
+    "@tailwindcss/postcss": "^4"
   }
 }
