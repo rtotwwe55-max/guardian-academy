@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "baseUrl": ".",
+    "paths": {
+      "@web/*": ["apps/web/*"],
+      "@mobile/*": ["apps/mobile/*"],
+      "@scoring/*": ["packages/scoring-engine/src/*"],
+      "@audit/*": ["packages/audit-logger/src/*"],
+      "@standards/*": ["standards/*"],
+      "@docs/*": ["docs/*"]
+    }
+  },
+  "exclude": ["node_modules"]
+}
