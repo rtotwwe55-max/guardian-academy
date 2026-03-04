@@ -14,7 +14,7 @@ import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { exportAsCSV, exportAsJSON, exportAsHTML } from '@/lib/export';
+import { exportAsCSV, exportAsJSON, exportAsHTML } from '../../../src/lib/export';
 
 export default function SettingsScreen() {
   const colorScheme = useColorScheme();

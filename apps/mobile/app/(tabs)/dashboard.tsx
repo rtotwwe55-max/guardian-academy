@@ -5,7 +5,7 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import React, { useEffect, useState, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { exportAsCSV, exportAsJSON, exportAsHTML } from '@/lib/export';
+import { exportAsCSV, exportAsJSON, exportAsHTML } from '../../../src/lib/export';
 
 export default function DashboardScreen() {
   const colorScheme = useColorScheme();

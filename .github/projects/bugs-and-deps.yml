@@ -1,0 +1,30 @@
+name: Bugs & Dependencies
+about: Track critical bugs and dependency updates needed
+state: open
+body: |
+  This board tracks blocking issues and updates that need immediate attention.
+
+columns:
+  - name: "🐛 Reported"
+    automation:
+      - triaged:
+          when: label_added
+      - in_progress:
+          when: assigned
+
+  - name: "🔍 Triaged"
+    automation:
+      - in_progress:
+          when: assigned
+      - reported:
+          when: unassigned
+
+  - name: "🛠️ In Progress"
+    automation:
+      - fixed:
+          when: pull_request_opened
+
+  - name: "✅ Fixed"
+    automation:
+      - archive:
+          when: issue_closed

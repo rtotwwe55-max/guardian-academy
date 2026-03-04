@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import { getSavedReport } from '@/lib/store';
 
-function extractToken(request: Request): string | null {
+function extractToken(request: NextRequest): string | null {
   const authHeader = request.headers.get('authorization');
   if (!authHeader) return null;
   const parts = authHeader.split(' ');
@@ -14,7 +14,11 @@ function extractToken(request: Request): string | null {
  * GET /api/reports/[id]
  * Get a specific saved report by ID
  */
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
   const token = extractToken(request);
   if (!token) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
@@ -22,7 +26,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
   if (!verify.valid) return NextResponse.json({ error: 'invalid token' }, { status: 401 });
 
   try {
-    const report = await getSavedReport(params.id);
+    const report = await getSavedReport(id);
 
     if (!report) {
       return NextResponse.json({ error: 'report not found' }, { status: 404 });
