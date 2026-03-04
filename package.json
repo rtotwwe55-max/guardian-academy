@@ -3,15 +3,50 @@
   "version": "1.0.0",
   "private": true,
   "workspaces": [
-    "packages/*",
-    "apps/*"
+    "apps/*",
+    "packages/*"
   ],
   "scripts": {
+    "dev": "concurrently \"npm run dev:web\" \"npm run dev:mobile\"",
     "dev:web": "cd apps/web && npm run dev",
-    "dev:mobile": "cd apps/mobile && npm start"
+    "dev:mobile": "cd apps/mobile && npm start",
+    "dev:scoring": "cd packages/scoring-engine && npm run dev",
+    "dev:audit": "cd packages/audit-logger && npm run dev",
+    "dev:core": "concurrently \"npm run dev:scoring\" \"npm run dev:audit\"",
+    "dev:full": "concurrently \"npm run dev:web\" \"npm run dev:mobile\" \"npm run dev:scoring\" \"npm run dev:audit\" \"npm run dev:watch-standards\"",
+    "dev:watch-standards": "node scripts/watch-standards.js",
+    "dev:all": "npm run dev:full",
+    "build:web": "cd apps/web && npm run build",
+    "build:mobile": "cd apps/mobile && npm run build",
+    "build:scoring": "cd packages/scoring-engine && npm run build",
+    "build:audit": "cd packages/audit-logger && npm run build",
+    "build:all": "concurrently \"npm run build:web\" \"npm run build:mobile\" \"npm run build:scoring\" \"npm run build:audit\"",
+    "test:web": "cd apps/web && npm test",
+    "test:mobile": "cd apps/mobile && npm test",
+    "test:scoring": "cd packages/scoring-engine && npm test",
+    "test:audit": "cd packages/audit-logger && npm test",
+    "test:all": "concurrently \"npm run test:web\" \"npm run test:mobile\" \"npm run test:scoring\" \"npm run test:audit\"",
+    "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules && npm install --legacy-peer-deps",
+    "reset": "npm run clean && rm -rf apps/*/build packages/*/dist .next",
+    "standards:check": "node scripts/check-standards.js"
+  },
+  "dependencies": {
+    "concurrently": "^8.2.0",
+    "bcryptjs": "^2.4.3",
+    "expo": "^49.0.0",
+    "react": "^18.2.0",
+    "react-native": "^0.72.0",
+    "next": "^16.1.6"
   },
   "devDependencies": {
-    "tailwindcss": "^4",
-    "@tailwindcss/postcss": "^4"
+    "tailwindcss": "^4.0.0",
+    "postcss": "^8.4.26",
+    "autoprefixer": "^10.4.15",
+    "@tailwindcss/postcss": "^4.0.0",
+    "typescript": "^5.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
   }
 }

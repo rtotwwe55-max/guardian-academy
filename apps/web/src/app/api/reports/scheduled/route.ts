@@ -1,14 +1,12 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import {
   getUserScheduledReports,
   createScheduledReport,
-  updateScheduledReport,
-  deleteScheduledReport,
 } from '@/lib/store';
 import type { ScheduledReport } from 'core';
 
-function extractToken(request: Request): string | null {
+function extractToken(request: NextRequest): string | null {
   const authHeader = request.headers.get('authorization');
   if (!authHeader) return null;
   const parts = authHeader.split(' ');
@@ -20,7 +18,7 @@ function extractToken(request: Request): string | null {
  * GET /api/reports/scheduled
  * Get all scheduled reports for the current user
  */
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   const token = extractToken(request);
   if (!token) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
@@ -49,7 +47,7 @@ export async function GET(request: Request) {
  *   enabled: boolean
  * }
  */
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const token = extractToken(request);
   if (!token) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
@@ -93,56 +91,5 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Error creating scheduled report:', error);
     return NextResponse.json({ error: 'failed to create report' }, { status: 500 });
-  }
-}
-
-/**
- * PUT /api/reports/scheduled/[id]
- * Update a scheduled report
- */
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
-  const token = extractToken(request);
-  if (!token) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-
-  const verify = verifyToken(token);
-  if (!verify.valid) return NextResponse.json({ error: 'invalid token' }, { status: 401 });
-
-  try {
-    const body = await request.json();
-    const success = await updateScheduledReport(params.id, body);
-
-    if (!success) {
-      return NextResponse.json({ error: 'failed to update report' }, { status: 500 });
-    }
-
-    return NextResponse.json({ message: 'report updated' });
-  } catch (error) {
-    console.error('Error updating scheduled report:', error);
-    return NextResponse.json({ error: 'failed to update report' }, { status: 500 });
-  }
-}
-
-/**
- * DELETE /api/reports/scheduled/[id]
- * Delete a scheduled report
- */
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
-  const token = extractToken(request);
-  if (!token) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-
-  const verify = verifyToken(token);
-  if (!verify.valid) return NextResponse.json({ error: 'invalid token' }, { status: 401 });
-
-  try {
-    const success = await deleteScheduledReport(params.id);
-
-    if (!success) {
-      return NextResponse.json({ error: 'failed to delete report' }, { status: 500 });
-    }
-
-    return NextResponse.json({ message: 'report deleted' });
-  } catch (error) {
-    console.error('Error deleting scheduled report:', error);
-    return NextResponse.json({ error: 'failed to delete report' }, { status: 500 });
   }
 }

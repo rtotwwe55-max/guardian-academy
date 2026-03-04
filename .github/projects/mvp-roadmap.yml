@@ -1,0 +1,40 @@
+name: MVP Roadmap
+about: High-level tasks for the first month, broken into To do / In progress / Done
+state: open
+body: |
+  This board tracks the Week 1–4 execution plan for the Guardian Academy MVP.
+  
+  **Labels used:** enhancement, documentation, tests, bug, dependencies
+  
+  Issues added via GitHub issue templates automatically appear under "To do".
+
+columns:
+  - name: "📋 To do"
+    automation:
+      - in_progress:
+          when: issue_reopened
+      - to_done:
+          when: issue_closed
+
+  - name: "🚀 In Progress"
+    automation:
+      - to_done:
+          when: issue_closed
+      - to_todo:
+          when: issue_reopened
+      - to_todo:
+          when: pull_request_opened
+
+  - name: "✅ Done"
+    automation:
+      - archive:
+          when: 14 days old
+
+filters:
+  assignee:
+    - any
+  timeline:
+    - week_1
+    - week_2
+    - week_3
+    - week_4
