@@ -1,0 +1,16 @@
+name: MVP Roadmap
+about: High-level tasks for the first month, broken into To do / In progress / Done
+state: open
+body: |
+  This board tracks the Week 1–4 execution plan for the Guardian Academy MVP.
+
+columns:
+  - name: To do
+    automation:
+      - move_in_progress:
+          when: added_to_board
+  - name: In progress
+    automation:
+      - move_to_done:
+          when: issue_closed
+  - name: Done
