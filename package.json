@@ -7,11 +7,15 @@
     "packages/*"
   ],
   "scripts": {
+    "dev": "concurrently \"npm run dev:web\" \"npm run dev:mobile\"",
     "dev:web": "cd apps/web && npm run dev",
     "dev:mobile": "cd apps/mobile && npm start",
     "dev:scoring": "cd packages/scoring-engine && npm run dev",
     "dev:audit": "cd packages/audit-logger && npm run dev",
-    "dev:all": "concurrently \"npm run dev:web\" \"npm run dev:mobile\" \"npm run dev:scoring\" \"npm run dev:audit\"",
+    "dev:core": "concurrently \"npm run dev:scoring\" \"npm run dev:audit\"",
+    "dev:full": "concurrently \"npm run dev:web\" \"npm run dev:mobile\" \"npm run dev:scoring\" \"npm run dev:audit\" \"npm run dev:watch-standards\"",
+    "dev:watch-standards": "node scripts/watch-standards.js",
+    "dev:all": "npm run dev:full",
     "build:web": "cd apps/web && npm run build",
     "build:mobile": "cd apps/mobile && npm run build",
     "build:scoring": "cd packages/scoring-engine && npm run build",
@@ -21,7 +25,10 @@
     "test:mobile": "cd apps/mobile && npm test",
     "test:scoring": "cd packages/scoring-engine && npm test",
     "test:audit": "cd packages/audit-logger && npm test",
-    "test:all": "concurrently \"npm run test:web\" \"npm run test:mobile\" \"npm run test:scoring\" \"npm run test:audit\""
+    "test:all": "concurrently \"npm run test:web\" \"npm run test:mobile\" \"npm run test:scoring\" \"npm run test:audit\"",
+    "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules && npm install --legacy-peer-deps",
+    "reset": "npm run clean && rm -rf apps/*/build packages/*/dist .next",
+    "standards:check": "node scripts/check-standards.js"
   },
   "dependencies": {
     "concurrently": "^8.2.0",
