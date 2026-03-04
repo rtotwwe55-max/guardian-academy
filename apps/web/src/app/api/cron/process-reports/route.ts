@@ -28,7 +28,6 @@ function shouldExecuteReport(report: ScheduledReport): boolean {
 
   // Check if we're in the target time window (within 60 minutes)
   const isTargetTime = hour === targetHour && minute >= targetMinute && minute < targetMinute + 60;
-
   if (!isTargetTime) return false;
 
   // Check frequency
@@ -52,6 +51,40 @@ function shouldExecuteReport(report: ScheduledReport): boolean {
 }
 
 /**
+ * Map custom report types to supported types
+ */
+function mapReportType(type: ReportType): 'summary' | 'detailed' {
+  switch (type) {
+    case 'trend':
+    case 'custom':
+      return 'detailed'; // Map unsupported types to detailed
+    default:
+      return type as 'summary' | 'detailed';
+  }
+}
+
+/**
+ * Calculate the next scheduled time
+ */
+function calculateNextScheduled(report: ScheduledReport, from: string): string {
+  const date = new Date(from);
+
+  switch (report.frequency) {
+    case 'daily':
+      date.setDate(date.getDate() + 1);
+      break;
+    case 'weekly':
+      date.setDate(date.getDate() + 7);
+      break;
+    case 'monthly':
+      date.setMonth(date.getMonth() + 1);
+      break;
+  }
+
+  return date.toISOString();
+}
+
+/**
  * Process a single scheduled report
  */
 async function processScheduledReport(report: ScheduledReport): Promise<boolean> {
@@ -63,8 +96,11 @@ async function processScheduledReport(report: ScheduledReport): Promise<boolean>
       return false;
     }
 
+    // Map the report type to a supported type
+    const supportedType = mapReportType(report.type);
+
     // Generate the report
-    const generatedReport = await generateReport(report.username, report.type as ReportType);
+    const generatedReport = await generateReport(report.username, supportedType);
     if (!generatedReport) {
       console.log(`Failed to generate report for user ${report.username}`);
       return false;
@@ -103,97 +139,49 @@ async function processScheduledReport(report: ScheduledReport): Promise<boolean>
 }
 
 /**
- * Calculate the next scheduled time for a report
- */
-function calculateNextScheduled(report: ScheduledReport, fromTime: string): string {
-  const next = new Date(fromTime);
-  const [hour, minute] = (report.timeOfDay || '09:00').split(':').map(Number);
-
-  switch (report.frequency) {
-    case 'daily':
-      next.setDate(next.getDate() + 1);
-      break;
-
-    case 'weekly':
-      next.setDate(next.getDate() + 7);
-      break;
-
-    case 'monthly':
-      next.setMonth(next.getMonth() + 1);
-      break;
-  }
-
-  next.setHours(hour, minute, 0, 0);
-  return next.toISOString();
-}
-
-/**
  * POST /api/cron/process-reports
- * This endpoint should be called by a cron job service (e.g., EasyCron, AWS EventBridge, etc.)
- * 
- * Requires CRON_SECRET environment variable for authentication
+ * Process all scheduled reports that are due
+ * Called by an external cron service
+ * Body expects:
+ * {
+ *   "cronSecret": "CRON_SECRET"
+ * }
  */
 export async function POST(request: Request) {
-  const secret = request.headers.get('x-cron-secret');
-
-  if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  }
-
   try {
-    // Get all enabled scheduled reports
+    // Verify the request is from our cron service
+    const body = await request.json();
+    const cronSecret = process.env.CRON_SECRET;
+
+    if (!cronSecret || body.cronSecret !== cronSecret) {
+      return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+    }
+
+    // Get all scheduled reports
     const allReports = await getAllScheduledReports();
+    if (!allReports || allReports.length === 0) {
+      return NextResponse.json({ processed: 0, message: 'no scheduled reports' });
+    }
 
-    // Process each report that should execute now
-    const reportsToProcess = allReports.filter(shouldExecuteReport);
-
-    console.log(
-      `Processing ${reportsToProcess.length} scheduled reports out of ${allReports.length} total`
-    );
-
+    // Process reports that are due
+    let processedCount = 0;
     let successCount = 0;
-    const errors: Array<{ reportId: string; error: string }> = [];
 
-    for (const report of reportsToProcess) {
-      try {
+    for (const report of allReports) {
+      if (shouldExecuteReport(report)) {
+        processedCount++;
         const success = await processScheduledReport(report);
         if (success) successCount++;
-      } catch (error) {
-        errors.push({
-          reportId: report.id,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
       }
     }
 
     return NextResponse.json({
-      processed: reportsToProcess.length,
+      processed: processedCount,
       successful: successCount,
-      failed: errors.length,
-      errors,
+      message: `processed ${processedCount} reports, ${successCount} successful`,
     });
   } catch (error) {
-    console.error('Error processing cron reports:', error);
-    return NextResponse.json(
-      { error: 'internal server error' },
-      { status: 500 }
-    );
+    console.error('Error in cron endpoint:', error);
+    return NextResponse.json({ error: 'failed to process reports' }, { status: 500 });
   }
-}
-
-/**
- * GET /api/cron/process-reports
- * Health check endpoint to verify the cron handler is accessible
- */
-export async function GET(request: Request) {
-  const secret = request.headers.get('x-cron-secret');
-
-  if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  }
-
-  return NextResponse.json({
-    status: 'ok',
-    message: 'Cron handler is operational. Send POST request to process reports.',
-  });
 }
